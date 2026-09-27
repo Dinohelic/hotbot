@@ -26,6 +26,10 @@ FFMPEG_OPTIONS = {
     "options": "-vn",
 }
 
+if os.path.exists("cookies.txt"):
+    YTDL_SEARCH_OPTIONS["cookiefile"] = "cookies.txt"
+    YTDL_EXTRACT_OPTIONS["cookiefile"] = "cookies.txt"
+
 # Note: Using YoutubeDL in a context manager to prevent memory leaks
 
 HOTLINES_FILE = "hotlines.json"
