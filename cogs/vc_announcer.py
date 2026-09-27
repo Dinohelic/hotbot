@@ -3,7 +3,7 @@ from discord.ext import commands
 
 # Replace with the ID of the text channel where join announcements should post.
 # (Right-click the channel in Discord with Developer Mode on -> Copy Channel ID)
-ANNOUNCE_CHANNEL_ID = False
+ANNOUNCE_CHANNEL_ID = 1553853923184353300
 
 
 class VCAnnouncer(commands.Cog):
