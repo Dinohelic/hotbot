@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/banner.png" alt="HotBot Banner" width="100%" style="border-radius: 12px; box-shadow: 0 0 20px #ff6b00, 0 0 40px #ff4500, 0 0 60px #ff2200;">
+<img src="assets/banner_glow.jpg" alt="HotBot Banner" width="100%">
 
 <br><br>
 
