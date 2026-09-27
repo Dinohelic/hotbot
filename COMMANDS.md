@@ -10,6 +10,8 @@ Here is a complete list of all the commands you can use with your Discord Bot.
 | :--- | :--- | :--- |
 | `!join` | Makes the bot join the Voice Channel you are currently in. | `!join` |
 | `!play <query>` | Searches for a song, plays a URL, or dials a hotline. If a song is already playing, it will be added to the queue. | `!play lofi hip hop`<br>`!play https://youtube.com/...`<br>`!play 069` |
+| `!pause` | Pauses the currently playing song. The song will resume from the same position when you use `!resume`. | `!pause` |
+| `!resume` | Resumes a paused song from where it was paused. | `!resume` |
 | `!skip` | Skips the currently playing song and starts the next one in the queue. | `!skip` |
 | `!stop` | Clears the entire queue, stops the music, and disconnects the bot from the Voice Channel. | `!stop` |
 | `!queue` | Displays the currently playing song and up to the next 10 songs in the queue. | `!queue` |

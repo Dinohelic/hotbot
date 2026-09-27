@@ -58,6 +58,7 @@ class GuildMusicState:
         self.queue: list[Track] = []
         self.voice_client: Optional[discord.VoiceClient] = None
         self.current: Optional[Track] = None
+        self.is_playing = False  # True when a track is actively playing or paused
 
 class Music(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -124,14 +125,17 @@ class Music(commands.Cog):
         if state.voice_client is None or not state.voice_client.is_connected():
             state.queue.clear()
             state.current = None
+            state.is_playing = False
             return
 
         if not state.queue:
             state.current = None
+            state.is_playing = False
             return
 
         track = state.queue.pop(0)
         state.current = track
+        state.is_playing = True
         
         loop = asyncio.get_running_loop()
         try:
@@ -157,10 +161,22 @@ class Music(commands.Cog):
             
         except Exception as e:
             print(f"Failed to extract {track.title}: {e}")
+            state.is_playing = False
             # Add a small delay to avoid CPU/Network burst on consecutive failures
             await asyncio.sleep(1)
             # Skip to next track if this one fails
             self.bot.loop.create_task(self.play_next_async(guild))
+
+    def _should_start_playing(self, state: GuildMusicState) -> bool:
+        """Check if the bot should start playing the next track.
+        Returns True only when nothing is currently playing or paused."""
+        if state.is_playing:
+            return False
+        if state.voice_client is None:
+            return False
+        if state.voice_client.is_playing() or state.voice_client.is_paused():
+            return False
+        return True
 
     @commands.command(name="join")
     async def join(self, ctx: commands.Context):
@@ -218,11 +234,12 @@ class Music(commands.Cog):
                     except Exception as e:
                         await ctx.send(f"Couldn't find '{song}': {e}")
                         
+                # Start playback as soon as the first track is ready
+                if self._should_start_playing(state):
+                    self.play_next(ctx.guild)
+
             if tracks_added > 0:
                 await ctx.send(f"Queued **{tracks_added} tracks** from hotline.")
-                
-            if not state.voice_client.is_playing() and state.current is None:
-                self.play_next(ctx.guild)
             return
 
         # Normal play (single song or a playlist URL)
@@ -239,15 +256,34 @@ class Music(commands.Cog):
         else:
             await ctx.send(f"Queued **{len(tracks)} tracks** from playlist.")
 
-        if not state.voice_client.is_playing() and state.current is None:
+        # Start playing immediately if nothing is currently active
+        if self._should_start_playing(state):
             self.play_next(ctx.guild)
+
+    @commands.command(name="pause")
+    async def pause(self, ctx: commands.Context):
+        state = self.get_state(ctx.guild.id)
+        if state.voice_client and state.voice_client.is_playing():
+            state.voice_client.pause()
+            await ctx.send("⏸️ Paused.")
+        else:
+            await ctx.send("Nothing is playing right now.")
+
+    @commands.command(name="resume")
+    async def resume(self, ctx: commands.Context):
+        state = self.get_state(ctx.guild.id)
+        if state.voice_client and state.voice_client.is_paused():
+            state.voice_client.resume()
+            await ctx.send("▶️ Resumed.")
+        else:
+            await ctx.send("Nothing is paused right now.")
 
     @commands.command(name="skip")
     async def skip(self, ctx: commands.Context):
         state = self.get_state(ctx.guild.id)
-        if state.voice_client and state.voice_client.is_playing():
-            state.voice_client.stop()
-            await ctx.send("Skipped.")
+        if state.voice_client and (state.voice_client.is_playing() or state.voice_client.is_paused()):
+            state.voice_client.stop()  # This triggers after_playing -> play_next
+            await ctx.send("⏭️ Skipped.")
         else:
             await ctx.send("Nothing is playing.")
 
@@ -255,11 +291,13 @@ class Music(commands.Cog):
     async def stop(self, ctx: commands.Context):
         state = self.get_state(ctx.guild.id)
         state.queue.clear()
+        state.current = None
+        state.is_playing = False
         if state.voice_client:
+            state.voice_client.stop()  # Stop audio first to prevent after_playing from firing with stale state
             await state.voice_client.disconnect()
             state.voice_client = None
-        state.current = None
-        await ctx.send("Stopped and left the voice channel.")
+        await ctx.send("⏹️ Stopped and left the voice channel.")
 
     @commands.command(name="queue")
     async def show_queue(self, ctx: commands.Context):
