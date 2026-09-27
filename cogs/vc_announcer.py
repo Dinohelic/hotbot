@@ -21,23 +21,17 @@ class VCAnnouncer(commands.Cog):
         if member.bot:
             return
 
-        joined_a_channel = before.channel is None and after.channel is not None
-        switched_channel = (
-            before.channel is not None
-            and after.channel is not None
-            and before.channel.id != after.channel.id
-        )
-
-        # Only fire on an actual join/switch — not on mute/deafen toggles or leaves
-        if not (joined_a_channel or switched_channel):
+        # Only fire when someone FIRST joins a VC (was fully disconnected before)
+        # Ignore channel switches and leaves
+        if before.channel is not None or after.channel is None:
             return
 
         # Replace with your Special Role ID (Right click role in Server Settings -> Copy ID)
         SPECIAL_ROLE_ID = 1553461064849694820
-        
+
         # Check if the user has the special role
         has_special_role = any(role.id == SPECIAL_ROLE_ID for role in member.roles)
-        
+
         # Check if the channel is private (meaning the @everyone role is denied view or connect access)
         everyone_role = member.guild.default_role
         perms = after.channel.permissions_for(everyone_role)
@@ -45,13 +39,24 @@ class VCAnnouncer(commands.Cog):
 
         # Skip the announcement if they have the special role OR if it's a private channel
         if has_special_role or is_private_channel:
-            pass # Do nothing!
+            pass  # Do nothing!
         else:
             channel = self.bot.get_channel(ANNOUNCE_CHANNEL_ID)
             if channel is not None:
-                await channel.send(
-                    f"🔊 **{member.display_name}** joined **{after.channel.name}**"
+                greeting = (
+                    f"🚨 **NEW HUMAN DETECTED** 🚨\n\n"
+                    f"Welcome to the server, {member.mention} 👋\n\n"
+                    f"Your application has been reviewed by absolutely nobody\n"
+                    f"and you've been **accepted anyway.** 💀\n\n"
+                    f"🎬 Movie nights\n"
+                    f"🎧 Music addiction\n"
+                    f"🗣️ Unnecessary conversations\n"
+                    f"🤡 Certified tomfoolery\n\n"
+                    f"Please keep your expectations low\n"
+                    f"and your Wi-Fi stable.\n\n"
+                    f"**Have fun. Don't be normal. 🫡**"
                 )
+                await channel.send(greeting)
 
         # Auto-join specific VC
         if after.channel is not None and after.channel.id == 1553484183341637734:
