@@ -26,8 +26,7 @@ FFMPEG_OPTIONS = {
     "options": "-vn",
 }
 
-ytdl_search = YoutubeDL(YTDL_SEARCH_OPTIONS)
-ytdl_extract = YoutubeDL(YTDL_EXTRACT_OPTIONS)
+# Note: Using YoutubeDL in a context manager to prevent memory leaks
 
 HOTLINES_FILE = "hotlines.json"
 
@@ -68,22 +67,23 @@ class Music(commands.Cog):
         loop = asyncio.get_running_loop()
         
         # If it's a URL, extract it
-        if query.startswith("http://") or query.startswith("https://"):
-            data = await loop.run_in_executor(
-                None, lambda: ytdl_search.extract_info(query, download=False)
-            )
-        else:
-            # Text search -> Try SoundCloud, fallback to YouTube
-            try:
+        with YoutubeDL(YTDL_SEARCH_OPTIONS) as ytdl:
+            if query.startswith("http://") or query.startswith("https://"):
                 data = await loop.run_in_executor(
-                    None, lambda: ytdl_search.extract_info(f"scsearch:{query}", download=False)
+                    None, lambda: ytdl.extract_info(query, download=False)
                 )
-                if not data or "entries" not in data or not data["entries"]:
-                    raise Exception()
-            except Exception:
-                data = await loop.run_in_executor(
-                    None, lambda: ytdl_search.extract_info(f"ytsearch:{query}", download=False)
-                )
+            else:
+                # Text search -> Try SoundCloud, fallback to YouTube
+                try:
+                    data = await loop.run_in_executor(
+                        None, lambda: ytdl.extract_info(f"scsearch:{query}", download=False)
+                    )
+                    if not data or "entries" not in data or not data["entries"]:
+                        raise Exception()
+                except Exception:
+                    data = await loop.run_in_executor(
+                        None, lambda: ytdl.extract_info(f"ytsearch:{query}", download=False)
+                    )
 
         if not data:
             raise Exception("No results found.")
@@ -111,6 +111,13 @@ class Music(commands.Cog):
 
     async def play_next_async(self, guild: discord.Guild):
         state = self.get_state(guild.id)
+        
+        # Check if bot was disconnected to avoid a tight loop of ClientExceptions
+        if state.voice_client is None or not state.voice_client.is_connected():
+            state.queue.clear()
+            state.current = None
+            return
+
         if not state.queue:
             state.current = None
             return
@@ -121,9 +128,10 @@ class Music(commands.Cog):
         loop = asyncio.get_running_loop()
         try:
             # JIT extraction to get the direct stream URL right before playing
-            data = await loop.run_in_executor(
-                None, lambda: ytdl_extract.extract_info(track.query_or_url, download=False)
-            )
+            with YoutubeDL(YTDL_EXTRACT_OPTIONS) as ytdl:
+                data = await loop.run_in_executor(
+                    None, lambda: ytdl.extract_info(track.query_or_url, download=False)
+                )
             # Use direct URL, or fallback to webpage URL if direct is missing (unlikely)
             stream_url = data.get("url") or data.get("webpage_url")
             
@@ -141,6 +149,8 @@ class Music(commands.Cog):
             
         except Exception as e:
             print(f"Failed to extract {track.title}: {e}")
+            # Add a small delay to avoid CPU/Network burst on consecutive failures
+            await asyncio.sleep(1)
             # Skip to next track if this one fails
             self.bot.loop.create_task(self.play_next_async(guild))
 
@@ -190,20 +200,21 @@ class Music(commands.Cog):
             song_list = self.hotlines[query_stripped]
             await ctx.send(f"📞 Dialing hotline **{query_stripped}**... analyzing {len(song_list)} items!")
             
+            tracks_added = 0
             for song in song_list:
                 async with ctx.typing():
                     try:
                         tracks = await self.search(song)
                         state.queue.extend(tracks)
-                        if len(tracks) == 1:
-                            await ctx.send(f"Queued **{tracks[0].title}**")
-                        else:
-                            await ctx.send(f"Queued **{len(tracks)} tracks** from playlist.")
+                        tracks_added += len(tracks)
                     except Exception as e:
                         await ctx.send(f"Couldn't find '{song}': {e}")
                         
-                if not state.voice_client.is_playing() and state.current is None:
-                    self.play_next(ctx.guild)
+            if tracks_added > 0:
+                await ctx.send(f"Queued **{tracks_added} tracks** from hotline.")
+                
+            if not state.voice_client.is_playing() and state.current is None:
+                self.play_next(ctx.guild)
             return
 
         # Normal play (single song or a playlist URL)
