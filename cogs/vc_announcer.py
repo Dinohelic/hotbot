@@ -37,7 +37,7 @@ class VCAnnouncer(commands.Cog):
         logger.info(f"[VC] Fresh join detected for {member.display_name}")
 
         # Replace with your Special Role ID (Right click role in Server Settings -> Copy ID)
-        SPECIAL_ROLE_ID = False
+        SPECIAL_ROLE_ID = 1553461064849694820
 
         # Check if the user has the special role
         has_special_role = any(role.id == SPECIAL_ROLE_ID for role in member.roles)
