@@ -12,6 +12,8 @@ YTDL_SEARCH_OPTIONS = {
     "quiet": True,
     "source_address": "0.0.0.0",
     "extract_flat": True, # Gets playlists and search results instantly
+    "js_runtimes": {"node": {}, "deno": {}},
+    "remote_components": ["ejs:github"],
 }
 
 YTDL_EXTRACT_OPTIONS = {
@@ -19,6 +21,8 @@ YTDL_EXTRACT_OPTIONS = {
     "noplaylist": True,
     "quiet": True,
     "source_address": "0.0.0.0",
+    "js_runtimes": {"node": {}, "deno": {}},
+    "remote_components": ["ejs:github"],
 }
 
 FFMPEG_OPTIONS = {
