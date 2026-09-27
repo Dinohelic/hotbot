@@ -6,9 +6,12 @@
 
 ### 🔥 Advanced Discord Music & Utility Bot
 
-[![Discord](https://img.shields.io/badge/Discord-Bot-5865F2?logo=discord&logoColor=white&style=for-the-badge)](https://discord.com)
+[![Invite HotBot](https://img.shields.io/badge/🔥_Invite_HotBot_to_Your_Server-FF4500?style=for-the-badge&logoColor=white)](https://discord.com/oauth2/authorize?client_id=1553442422850326691&permissions=36785152&scope=bot)
+
+[![Discord](https://img.shields.io/badge/Discord-Bot-5865F2?logo=discord&logoColor=white&style=for-the-badge)](https://discord.com/oauth2/authorize?client_id=1553442422850326691&permissions=36785152&scope=bot)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white&style=for-the-badge)](https://python.org)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Online_24%2F7-brightgreen?style=for-the-badge&logo=render&logoColor=white)](https://hotbot-wnvg.onrender.com)
 
 *High-quality music playback • Hotline playlists • Smart VC announcer • 24/7 Cloud hosting*
 
