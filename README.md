@@ -21,7 +21,7 @@
 ### 🎵 Advanced Music Engine
 - **High-Quality Playback:** Stream directly from YouTube and SoundCloud.
 - **Playlist Support:** Paste a public YouTube/SoundCloud playlist URL, and it will instantly extract and queue all the songs!
-- **Hotline System:** Create custom saved playlists assigned to a "Hotline" number (e.g., `!create_hotline 069 <songs>`). Dial the hotline (`!play 069`) to queue them all instantly.
+- **Hotline System:** Create custom saved playlists assigned to a "Hotline" number (e.g., `!create_hotline 012 <public yt. playlist link>`). Dial the hotline (`!play 012`) to queue them all instantly.
 - **JIT Extraction:** Stream URLs are generated Just-In-Time (JIT) right before the song plays, meaning your URLs will **never** expire, even in 500-song queues!
 - **Pause & Resume:** Pause the music with `!pause` and pick up right where you left off with `!resume`.
 
