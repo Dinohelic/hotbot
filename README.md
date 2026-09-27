@@ -1,6 +1,22 @@
-# HotBot - Advanced Discord Music & Utility Bot
+<div align="center">
 
-HotBot is a powerful, fully-featured Discord bot featuring high-quality music playback, customizable hotline playlists, and a smart Voice Channel announcer. It runs completely standalone using `yt-dlp` and `FFmpeg` (no Lavalink server required) and is fully optimized for free 24/7 cloud hosting!
+<img src="assets/banner.png" alt="HotBot Banner" width="100%" style="border-radius: 12px; box-shadow: 0 0 20px #ff6b00, 0 0 40px #ff4500, 0 0 60px #ff2200;">
+
+<br><br>
+
+<img src="assets/icon.png" alt="HotBot Icon" width="120" style="border-radius: 50%;">
+
+### 🔥 Advanced Discord Music & Utility Bot
+
+[![Discord](https://img.shields.io/badge/Discord-Bot-5865F2?logo=discord&logoColor=white&style=for-the-badge)](https://discord.com)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white&style=for-the-badge)](https://python.org)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+
+*High-quality music playback • Hotline playlists • Smart VC announcer • 24/7 Cloud hosting*
+
+</div>
+
+---
 
 ## 🌟 Core Features
 
@@ -9,6 +25,7 @@ HotBot is a powerful, fully-featured Discord bot featuring high-quality music pl
 - **Playlist Support:** Paste a public YouTube/SoundCloud playlist URL, and it will instantly extract and queue all the songs!
 - **Hotline System:** Create custom saved playlists assigned to a "Hotline" number (e.g., `!create_hotline 069 <songs>`). Dial the hotline (`!play 069`) to queue them all instantly.
 - **JIT Extraction:** Stream URLs are generated Just-In-Time (JIT) right before the song plays, meaning your URLs will **never** expire, even in 500-song queues!
+- **Pause & Resume:** Pause the music with `!pause` and pick up right where you left off with `!resume`.
 
 ### 🔊 Smart VC Announcer
 - **Join Announcements:** Posts a message (e.g., `🔊 Anish joined General Voice`) into a specific text channel.
@@ -67,6 +84,8 @@ python bot.py
 | :--- | :--- | :--- |
 | `!join` | Makes the bot join your Voice Channel | `!join` |
 | `!play <query>` | Searches/queues a track, playlist, or dials a hotline | `!play lofi hip hop`<br>`!play 069` |
+| `!pause` | Pauses the currently playing track | `!pause` |
+| `!resume` | Resumes from where you paused | `!resume` |
 | `!skip` | Skips the currently playing track | `!skip` |
 | `!stop` | Clears the queue and leaves the VC | `!stop` |
 | `!queue` | Shows the next 10 songs in the queue | `!queue` |
