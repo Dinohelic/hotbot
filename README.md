@@ -4,8 +4,6 @@
 
 <br><br>
 
-<img src="assets/icon.png" alt="HotBot Icon" width="120" style="border-radius: 50%;">
-
 ### 🔥 Advanced Discord Music & Utility Bot
 
 [![Discord](https://img.shields.io/badge/Discord-Bot-5865F2?logo=discord&logoColor=white&style=for-the-badge)](https://discord.com)
