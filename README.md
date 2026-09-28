@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/banner_glow.jpg" alt="HotBot Banner" width="100%">
+<img src="assets/banner.png" alt="HotBot Banner" width="100%">
 
 <br><br>
 
