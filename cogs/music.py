@@ -1,5 +1,4 @@
 import asyncio
-import time
 import json
 import os
 from typing import Optional
@@ -60,11 +59,6 @@ class GuildMusicState:
         self.voice_client: Optional[discord.VoiceClient] = None
         self.current: Optional[Track] = None
         self.is_playing = False  # True when a track is actively playing or paused
-        # Playback position tracking (for fast-forward / seeking)
-        self.stream_url: Optional[str] = None      # Cached direct stream URL for the current track
-        self.playback_start: float = 0.0            # monotonic timestamp when playback started
-        self.playback_offset: float = 0.0           # cumulative offset in seconds (from previous seeks)
-        self.seeking: bool = False                  # True while a fast-forward seek is in progress
 
 class Music(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -153,19 +147,11 @@ class Music(commands.Cog):
             # Use direct URL, or fallback to webpage URL if direct is missing (unlikely)
             stream_url = data.get("url") or data.get("webpage_url")
             
-            # Cache the stream URL & reset position tracking
-            state.stream_url = stream_url
-            state.playback_offset = 0.0
-            state.playback_start = time.monotonic()
-            
             source = discord.FFmpegPCMAudio(stream_url, **FFMPEG_OPTIONS)
             
             def after_playing(error: Optional[Exception]):
                 if error:
                     print(f"Player error: {error}")
-                # Don't advance to next track if we're just seeking within the current one
-                if state.seeking:
-                    return
                 # Safely schedule the next song
                 self.bot.loop.call_soon_threadsafe(
                     lambda: self.bot.loop.create_task(self.play_next_async(guild))
@@ -293,65 +279,13 @@ class Music(commands.Cog):
             await ctx.send("Nothing is paused right now.")
 
     @commands.command(name="skip")
-    async def skip(self, ctx: commands.Context, seconds: Optional[int] = None):
+    async def skip(self, ctx: commands.Context):
         state = self.get_state(ctx.guild.id)
-
-        if not state.voice_client or not (state.voice_client.is_playing() or state.voice_client.is_paused()):
-            await ctx.send("Nothing is playing.")
-            return
-
-        # --- No argument: skip the entire track (original behaviour) ---
-        if seconds is None:
+        if state.voice_client and (state.voice_client.is_playing() or state.voice_client.is_paused()):
             state.voice_client.stop()  # This triggers after_playing -> play_next
             await ctx.send("⏭️ Skipped.")
-            return
-
-        # --- Fast-forward by `seconds` ---
-        if seconds < 1 or seconds > 15:
-            await ctx.send("⚠️ Skip time must be between **1** and **15** seconds.")
-            return
-
-        if not state.stream_url:
-            await ctx.send("Can't fast-forward this track (no cached stream).")
-            return
-
-        # Calculate the new absolute position
-        elapsed = time.monotonic() - state.playback_start
-        new_position = state.playback_offset + elapsed + seconds
-
-        # Build FFmpeg options with the seek offset
-        ff_opts = {
-            "before_options": f"-ss {new_position:.2f} -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
-            "options": "-vn",
-        }
-
-        # Set seeking flag so the after_playing callback won't advance the queue
-        state.seeking = True
-        state.voice_client.stop()
-
-        # Wait briefly for the stop to take effect
-        await asyncio.sleep(0.1)
-        state.seeking = False
-
-        try:
-            source = discord.FFmpegPCMAudio(state.stream_url, **ff_opts)
-
-            def after_playing(error: Optional[Exception]):
-                if error:
-                    print(f"Player error: {error}")
-                self.bot.loop.call_soon_threadsafe(
-                    lambda: self.bot.loop.create_task(self.play_next_async(ctx.guild))
-                )
-
-            state.voice_client.play(source, after=after_playing)
-
-            # Update position tracking
-            state.playback_offset = new_position
-            state.playback_start = time.monotonic()
-
-            await ctx.send(f"⏩ Fast-forwarded **{seconds}s** (now at ~{int(new_position)}s).")
-        except Exception as e:
-            await ctx.send(f"❌ Failed to fast-forward: {e}")
+        else:
+            await ctx.send("Nothing is playing.")
 
     @commands.command(name="stop")
     async def stop(self, ctx: commands.Context):
