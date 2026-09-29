@@ -13,6 +13,7 @@ Here is a complete list of all the commands you can use with your Discord Bot.
 | `!pause` | Pauses the currently playing song. The song will resume from the same position when you use `!resume`. | `!pause` |
 | `!resume` | Resumes a paused song from where it was paused. | `!resume` |
 | `!skip` | Skips the currently playing song and starts the next one in the queue. | `!skip` |
+| `!skip <seconds>` | Fast-forwards the current song by the given number of seconds (1–15). | `!skip 5`<br>`!skip 10` |
 | `!stop` | Clears the entire queue, stops the music, and disconnects the bot from the Voice Channel. | `!stop` |
 | `!queue` | Displays the currently playing song and up to the next 10 songs in the queue. | `!queue` |
 
