@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="assets/banner.png" alt="HotBot Banner" width="100%">
+<img src="assets/banner.png" alt="LazyBot Banner" width="100%">
 
 <br><br>
 
 ### 🔥 Advanced Discord Music & Utility Bot
 
-[![Invite HotBot](https://img.shields.io/badge/🔥_Invite_HotBot_to_Your_Server-FF4500?style=for-the-badge&logoColor=white)](https://discord.com/oauth2/authorize?client_id=1553442422850326691&permissions=36785152&scope=bot)
+[![Invite LazyBot](https://img.shields.io/badge/🔥_Invite_LazyBot_to_Your_Server-FF4500?style=for-the-badge&logoColor=white)](https://discord.com/oauth2/authorize?client_id=1553442422850326691&permissions=36785152&scope=bot)
 
 [![Discord](https://img.shields.io/badge/Discord-Bot-5865F2?logo=discord&logoColor=white&style=for-the-badge)](https://discord.com/oauth2/authorize?client_id=1553442422850326691&permissions=36785152&scope=bot)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white&style=for-the-badge)](https://python.org)
