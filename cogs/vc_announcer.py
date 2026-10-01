@@ -49,9 +49,40 @@ class VCAnnouncer(commands.Cog):
         is_private_channel = not perms.view_channel or not perms.connect
         logger.info(f"[VC] is_private_channel={is_private_channel} (view={perms.view_channel}, connect={perms.connect})")
 
-        # Skip the announcement if they have the special role OR if it's a private channel
-        if has_special_role or is_private_channel:
-            logger.info("[VC] Skipped announcement: special role or private channel")
+        # Skip the announcement if they have the special role
+        if has_special_role:
+            logger.info("[VC] Skipped announcement: special role")
+        elif is_private_channel:
+            # --- Private VC knock notification ---
+            # The "owners" are members who have explicit permission overwrites on this channel.
+            # If the joining user does NOT have an overwrite, notify the owners.
+            user_has_overwrite = member in after.channel.overwrites
+            logger.info(f"[VC] Private VC: user_has_overwrite={user_has_overwrite}")
+
+            if not user_has_overwrite:
+                # Find all member overwrites on this channel (these are the "owners")
+                owners = [
+                    target for target, _ in after.channel.overwrites.items()
+                    if isinstance(target, discord.Member) and not target.bot
+                ]
+                logger.info(f"[VC] Private VC owners: {[o.display_name for o in owners]}")
+
+                channel = self.bot.get_channel(ANNOUNCE_CHANNEL_ID)
+                if channel is not None and owners:
+                    owner_mentions = ", ".join(o.mention for o in owners)
+                    knock_msg = (
+                        f"🚪 Knock knock, {owner_mentions}! "
+                        f"{member.mention} is in the Waiting Room "
+                        f"and wants to hop into your private VC."
+                    )
+                    await channel.send(knock_msg)
+                    logger.info("[VC] Knock notification sent!")
+                elif not owners:
+                    logger.warning("[VC] Private VC has no member overwrites — no one to notify.")
+                else:
+                    logger.warning(f"[VC] Could not find channel with ID {ANNOUNCE_CHANNEL_ID}!")
+            else:
+                logger.info("[VC] User has overwrite on private VC — allowed, no notification.")
         else:
             channel = self.bot.get_channel(ANNOUNCE_CHANNEL_ID)
             logger.info(f"[VC] Announce channel lookup: {channel} (ID={ANNOUNCE_CHANNEL_ID})")
