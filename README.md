@@ -13,7 +13,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Online_24%2F7-brightgreen?style=for-the-badge&logo=render&logoColor=white)](https://hotbot-wnvg.onrender.com)
 
-*High-quality music playback • Hotline playlists • Smart VC announcer • 24/7 Cloud hosting*
+*High-quality music playback • Track looping • Hotline playlists • Smart VC announcer • 24/7 Cloud hosting*
 
 </div>
 
@@ -27,6 +27,12 @@
 - **Hotline System:** Create custom saved playlists assigned to a "Hotline" number (e.g., `!create_hotline 012 <public yt. playlist link>`). Dial the hotline (`!play 012`) to queue them all instantly.
 - **JIT Extraction:** Stream URLs are generated Just-In-Time (JIT) right before the song plays, meaning your URLs will **never** expire, even in 500-song queues!
 - **Pause & Resume:** Pause the music with `!pause` and pick up right where you left off with `!resume`.
+
+### 🔁 Loop System
+- **Finite Loops:** Repeat any track a set number of times (e.g., `!loop 5 song name` or `!loop 3` for the current track).
+- **Infinite Loops:** Omit the count to loop forever (`!loop song name` or just `!loop` for the current track).
+- **Vibe Check:** During infinite loops, the bot sends a check-in message after 30 minutes asking the user to react with 💿 or 🎧. If there's no response within 5 minutes, the bot stops and disconnects automatically — no wasted resources!
+- **Cancel Anytime:** Use `!unloop` to stop looping, or `!stop` to kill everything.
 
 ### 🔊 Smart VC Announcer
 - **Join Announcements:** Posts a message (e.g., `🔊 Anish joined General Voice`) into a specific text channel.
@@ -88,8 +94,10 @@ python bot.py
 | `!pause` | Pauses the currently playing track | `!pause` |
 | `!resume` | Resumes from where you paused | `!resume` |
 | `!skip` | Skips the currently playing track | `!skip` |
-| `!stop` | Clears the queue and leaves the VC | `!stop` |
-| `!queue` | Shows the next 10 songs in the queue | `!queue` |
+| `!stop` | Clears the queue, cancels loops, and leaves the VC | `!stop` |
+| `!queue` | Shows the next 10 songs in the queue (with loop indicator) | `!queue` |
+| `!loop [count] [query]` | Loops a track. Omit count for infinite, omit query for current track | `!loop`<br>`!loop 5`<br>`!loop 3 starboy` |
+| `!unloop` | Cancels the active loop | `!unloop` |
 | `!create_hotline <no> <songs>` | Saves a custom playlist to a hotline number! | `!create_hotline 100 never gonna give you up, sandstorm` |
 
 ---
