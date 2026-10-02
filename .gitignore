@@ -18,5 +18,14 @@ __pycache__/
 *.swp
 *.swo
 
+# Secrets & credentials
+cookies.txt
+
+# Runtime data
+hotlines.json
+
+# Archives / binaries
+*.zip
+
 # macOS
 .DS_Store

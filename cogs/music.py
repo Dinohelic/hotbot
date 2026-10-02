@@ -59,6 +59,11 @@ class GuildMusicState:
         self.voice_client: Optional[discord.VoiceClient] = None
         self.current: Optional[Track] = None
         self.is_playing = False  # True when a track is actively playing or paused
+        # Loop state
+        self.loop_track: Optional[Track] = None   # The track being looped
+        self.loop_count: Optional[int] = None      # None = infinite, int = remaining plays
+        self.loop_requester: Optional[discord.Member] = None  # Who requested the loop
+        self.loop_vibe_task: Optional[asyncio.Task] = None     # Background vibe-check task
 
 class Music(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -114,6 +119,65 @@ class Music(commands.Cog):
             
         return tracks
 
+    def _cancel_loop(self, state: GuildMusicState):
+        """Clear all loop state and cancel the vibe-check timer."""
+        state.loop_track = None
+        state.loop_count = None
+        state.loop_requester = None
+        if state.loop_vibe_task and not state.loop_vibe_task.done():
+            state.loop_vibe_task.cancel()
+        state.loop_vibe_task = None
+
+    async def _vibe_check(self, guild: discord.Guild, user: discord.Member):
+        """Wait 30 minutes, then send a vibe-check. If no reaction in 5 mins, stop."""
+        VIBE_CHANNEL_ID = 1553483800686755911
+        try:
+            await asyncio.sleep(30 * 60)  # 30 minutes
+
+            state = self.get_state(guild.id)
+            # If loop was cancelled while we waited, bail out
+            if state.loop_track is None:
+                return
+
+            channel = self.bot.get_channel(VIBE_CHANNEL_ID)
+            if channel is None:
+                return
+
+            msg = await channel.send(
+                f"🚨 Vibe check, {user.mention}! We've been spinning this for half an hour! "
+                f"💿 Drop a reaction if you're still listening, or I'm packing up the DJ booth in 5 mins."
+            )
+            # Seed reactions so the user can just click
+            await msg.add_reaction("💿")
+            await msg.add_reaction("🎧")
+
+            def check(reaction: discord.Reaction, reactor: discord.User):
+                return (
+                    reactor.id == user.id
+                    and reaction.message.id == msg.id
+                    and str(reaction.emoji) in ("💿", "🎧")
+                )
+
+            try:
+                await self.bot.wait_for("reaction_add", timeout=5 * 60, check=check)
+                # User reacted — reset the timer for another 30 minutes
+                await channel.send(f"🎶 Nice, {user.mention}! Keeping the vibes going. See you in another 30! 🔁")
+                state.loop_vibe_task = asyncio.create_task(self._vibe_check(guild, user))
+            except asyncio.TimeoutError:
+                # No reaction — stop everything
+                await channel.send(f"🎤 No response from {user.mention} — packing up the DJ booth. Catch you next time! ✌️")
+                self._cancel_loop(state)
+                state.queue.clear()
+                state.current = None
+                state.is_playing = False
+                if state.voice_client:
+                    state.voice_client.stop()
+                    await state.voice_client.disconnect()
+                    state.voice_client = None
+
+        except asyncio.CancelledError:
+            pass  # Loop was stopped or a new loop replaced this one
+
     def play_next(self, guild: discord.Guild):
         # Fire and forget the async play function
         self.bot.loop.create_task(self.play_next_async(guild))
@@ -124,9 +188,23 @@ class Music(commands.Cog):
         # Check if bot was disconnected to avoid a tight loop of ClientExceptions
         if state.voice_client is None or not state.voice_client.is_connected():
             state.queue.clear()
+            self._cancel_loop(state)
             state.current = None
             state.is_playing = False
             return
+
+        # If a loop is active and the queue is empty, re-queue the loop track
+        if state.loop_track and not state.queue:
+            if state.loop_count is None:
+                # Infinite loop — keep going
+                state.queue.append(Track(state.loop_track.title, state.loop_track.query_or_url))
+            elif state.loop_count > 0:
+                # Finite loop — decrement
+                state.loop_count -= 1
+                state.queue.append(Track(state.loop_track.title, state.loop_track.query_or_url))
+            else:
+                # Loop exhausted
+                self._cancel_loop(state)
 
         if not state.queue:
             state.current = None
@@ -287,9 +365,102 @@ class Music(commands.Cog):
         else:
             await ctx.send("Nothing is playing.")
 
+    @commands.command(name="loop")
+    async def loop(self, ctx: commands.Context, *, args: str = None):
+        """Loop a track.
+        Usage:
+          !loop            — loop the current track infinitely
+          !loop 5          — loop the current track 5 times
+          !loop <song>     — loop a song infinitely
+          !loop 3 <song>   — loop a song 3 times
+        """
+        if ctx.author.voice is None or ctx.author.voice.channel is None:
+            await ctx.send("Join a voice channel first.")
+            return
+
+        state = self.get_state(ctx.guild.id)
+
+        if state.voice_client is None or not state.voice_client.is_connected():
+            state.voice_client = await ctx.author.voice.channel.connect()
+
+        loop_count = None  # None means infinite
+        query = None
+
+        if args:
+            parts = args.strip().split(None, 1)
+            # Check if the first token is a number
+            if parts[0].isdigit():
+                loop_count = int(parts[0])
+                if loop_count < 1:
+                    await ctx.send("Loop count must be at least 1.")
+                    return
+                query = parts[1] if len(parts) > 1 else None
+            else:
+                query = args.strip()
+
+        # Determine which track to loop
+        if query:
+            # Search for the requested song
+            async with ctx.typing():
+                try:
+                    tracks = await self.search(query)
+                except Exception as e:
+                    await ctx.send(f"Couldn't find that: {e}")
+                    return
+            track = tracks[0]
+        elif state.current:
+            # Loop the currently playing track
+            track = Track(state.current.title, state.current.query_or_url)
+        else:
+            await ctx.send("Nothing is playing and no song was specified. Use `!loop <song>` or play something first.")
+            return
+
+        # Cancel any previous loop
+        self._cancel_loop(state)
+
+        # Set up loop state — loop_count stores *remaining* plays after the first
+        state.loop_track = track
+        state.loop_count = (loop_count - 1) if loop_count is not None else None
+        state.loop_requester = ctx.author
+
+        if loop_count is None:
+            count_label = "∞ (infinite)"
+        else:
+            count_label = str(loop_count)
+
+        await ctx.send(f"🔁 Looping **{track.title}** × {count_label}")
+
+        # If nothing is playing, start now
+        if query:
+            # Put the track at the front and start
+            state.queue.insert(0, Track(track.title, track.query_or_url))
+            if self._should_start_playing(state):
+                self.play_next(ctx.guild)
+        else:
+            # Current track is already playing; after it finishes it will re-queue automatically
+            pass
+
+        # Start the vibe-check timer for infinite loops
+        if state.loop_count is None:
+            state.loop_vibe_task = asyncio.create_task(
+                self._vibe_check(ctx.guild, ctx.author)
+            )
+
+    @commands.command(name="unloop")
+    async def unloop(self, ctx: commands.Context):
+        """Stop looping the current track."""
+        state = self.get_state(ctx.guild.id)
+        if state.loop_track is None:
+            await ctx.send("Nothing is being looped right now.")
+            return
+        title = state.loop_track.title
+        self._cancel_loop(state)
+        await ctx.send(f"🔁❌ Stopped looping **{title}**.")
+
     @commands.command(name="stop")
     async def stop(self, ctx: commands.Context):
         state = self.get_state(ctx.guild.id)
+        self._cancel_loop(state)
         state.queue.clear()
         state.current = None
         state.is_playing = False
@@ -308,7 +479,13 @@ class Music(commands.Cog):
 
         lines = []
         if state.current:
-            lines.append(f"**Now playing:** {state.current.title}")
+            now_playing = f"**Now playing:** {state.current.title}"
+            if state.loop_track:
+                if state.loop_count is None:
+                    now_playing += " 🔁 ∞"
+                else:
+                    now_playing += f" 🔁 {state.loop_count + 1} left"
+            lines.append(now_playing)
             
         queue_slice = state.queue[:10]
         for i, track in enumerate(queue_slice, start=1):
